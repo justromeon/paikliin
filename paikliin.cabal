@@ -1,0 +1,39 @@
+cabal-version:      3.4
+name:               paikliin
+version:            0.1.0.0
+license:            BSD-3-Clause
+license-file:       LICENSE
+author:             Justin Kian Romeon
+maintainer:         romeonjustin@gmail.com
+build-type:         Simple
+extra-doc-files:    CHANGELOG.md
+
+common shared
+    default-language:   GHC2021
+    default-extensions:
+        OverloadedStrings
+        DataKinds
+        DerivingStrategies
+        DeriveAnyClass
+        LambdaCase
+    ghc-options:        -Wall
+    build-depends:      base ^>=4.20, text, time, bytestring
+
+library
+    import:           shared
+    hs-source-dirs:   src
+    exposed-modules:  Domain
+
+executable paikliin
+    import:           shared
+    hs-source-dirs:   app
+    main-is:          Main.hs
+    build-depends:    paikliin
+
+test-suite spec
+    import:           shared
+    type:             exitcode-stdio-1.0
+    hs-source-dirs:   test
+    main-is:          Spec.hs
+    -- other-modules:
+    build-depends:    paikliin, hspec, QuickCheck
