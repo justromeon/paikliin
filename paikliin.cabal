@@ -16,6 +16,9 @@ common shared
         DerivingStrategies
         DeriveAnyClass
         LambdaCase
+        ImportQualifiedPost
+        OverloadedRecordDot
+        DuplicateRecordFields
     ghc-options:        -Wall
     build-depends:      base ^>=4.20, text, time, bytestring
 
