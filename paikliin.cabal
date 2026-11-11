@@ -38,5 +38,10 @@ test-suite spec
     type:             exitcode-stdio-1.0
     hs-source-dirs:   test
     main-is:          Spec.hs
-    -- other-modules:
-    build-depends:    paikliin, hspec, QuickCheck
+    other-modules:
+        DomainSpec
+    build-depends:
+        paikliin,
+        hspec,
+        QuickCheck,
+        time
