@@ -3,6 +3,7 @@ module Domain (
   longUrlText,
   UrlError (..),
   parseLongUrl,
+  unsafeLongUrl,
   ShortCode,
   shortCodeText,
   parseShortCode,
@@ -44,6 +45,13 @@ parseLongUrl raw
   | otherwise = Left NotHttp
  where
   trimmed = T.strip raw
+
+{- | Skips validation. Only for values read back from system's own storage
+(Postgres or Redis), which were validated by 'parseLongUrl' before they were written.
+Never use it on outside input.
+-}
+unsafeLongUrl :: Text -> LongUrl
+unsafeLongUrl = LongUrl
 
 -- Short Codes
 

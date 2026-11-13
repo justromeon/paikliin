@@ -25,7 +25,14 @@ common shared
 library
     import:           shared
     hs-source-dirs:   src
-    exposed-modules:  Domain
+    exposed-modules:
+        Db
+        Domain
+    build-depends:
+        hasql >=1.10 && <1.11,
+        hasql-th,
+        directory,
+        filepath
 
 executable paikliin
     import:           shared
