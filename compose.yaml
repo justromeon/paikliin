@@ -1,0 +1,30 @@
+services:
+  db:
+    image: postgres:16
+    environment:
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: paikliin
+    ports: ["127.0.0.1:5432:5432"]   # for `cabal test`
+    volumes: [pgdata:/var/lib/postgresql/data]
+    healthcheck:
+      test: ["CMD", "pg_isready", "-U", "postgres"]
+      interval: 2s
+      retries: 15
+
+  migrate:
+    build: .
+    command: ["paikliin", "migrate"]
+    environment: &appenv
+      DATABASE_URL: postgres://postgres:postgres@db:5432/paikliin
+    depends_on:
+      db: { condition: service_healthy }
+
+  app:
+    build: .
+    environment: *appenv
+    ports: ["8080:8080"]
+    depends_on:
+      migrate: { condition: service_completed_successfully }
+
+volumes:
+  pgdata:
