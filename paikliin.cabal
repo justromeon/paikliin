@@ -52,9 +52,14 @@ test-suite spec
     hs-source-dirs:   test
     main-is:          Spec.hs
     other-modules:
+        ApiSpec
         DomainSpec
     build-depends:
         paikliin,
         hspec,
         QuickCheck,
-        time
+        time,
+        hspec-wai,
+        wai-extra,
+        http-types,
+        hasql
