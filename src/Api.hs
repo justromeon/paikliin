@@ -90,3 +90,6 @@ badRequest e =
 
 parsecode :: Text -> Handler ShortCode
 parsecode = maybe (throwError err404) pure . parseShortCode
+
+app :: Env -> Application
+app env = serve (Proxy @API) (server env)

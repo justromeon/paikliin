@@ -41,7 +41,10 @@ executable paikliin
     import:           shared
     hs-source-dirs:   app
     main-is:          Main.hs
-    build-depends:    paikliin
+    build-depends:
+        paikliin,
+        warp
+    ghc-options:     -threaded -rtsopts "-with-rtsopts=-N"
 
 test-suite spec
     import:           shared
