@@ -1,4 +1,4 @@
-module Api where
+module Api (Env (..), app) where
 
 import Control.Monad.IO.Class (MonadIO (liftIO))
 import Data.Aeson (FromJSON, ToJSON, encode, object, (.=))
@@ -63,17 +63,17 @@ server env = health :<|> create :<|> info :<|> remove :<|> redirect
       Right new -> toInfo <$> liftIO (Db.insertLink env.db now new)
 
   info raw = do
-    sc <- parsecode raw
+    sc <- parseCode raw
     found <- liftIO (Db.findLink env.db sc)
     maybe (throwError err404) (pure . toInfo) found
 
   remove raw = do
-    sc <- parsecode raw
+    sc <- parseCode raw
     deleted <- liftIO (Db.deleteLink env.db sc)
     if deleted then pure NoContent else throwError err404
 
   redirect raw = do
-    sc <- parsecode raw
+    sc <- parseCode raw
     now <- liftIO env.currentTime
     found <- liftIO (Db.findLink env.db sc)
     case resolve now found of
@@ -88,8 +88,8 @@ badRequest e =
     , errHeaders = [("Content-Type", "application/json")]
     }
 
-parsecode :: Text -> Handler ShortCode
-parsecode = maybe (throwError err404) pure . parseShortCode
+parseCode :: Text -> Handler ShortCode
+parseCode = maybe (throwError err404) pure . parseShortCode
 
 app :: Env -> Application
 app env = serve (Proxy @API) (server env)
