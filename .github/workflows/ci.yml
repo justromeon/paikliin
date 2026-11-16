@@ -27,6 +27,7 @@ jobs:
         with:
           path: ${{ steps.setup.outputs.cabal-store }}
           key: ${{ runner.os }}-cabal-${{ hashFiles('*.cabal', 'cabal.project*') }}
+          restore-keys: ${{ runner.os }}-cabal-
       - run: cabal build all
       - run: cabal test --test-show-details=direct
 
