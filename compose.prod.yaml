@@ -1,0 +1,31 @@
+services:
+  db:
+    image: postgres:16
+    environment:
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: paikliin
+    volumes: [pgdata:/var/lib/postgresql/data]
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "pg_isready", "-U", "postgres"]
+      interval: 2s
+      retries: 15
+
+  migrate:
+    image: ghcr.io/justromeon/paikliin:latest
+    command: ["paikliin", "migrate"]
+    environment: &appenv
+      DATABASE_URL: postgres://postgres:${POSTGRES_PASSWORD}@db:5432/paikliin
+    depends_on:
+      db: { condition: service_healthy }
+
+  app:
+    image: ghcr.io/justromeon/paikliin:latest
+    environment: *appenv
+    ports: ["80:8080"]
+    restart: unless-stopped
+    depends_on:
+      db: { condition: service_healthy }
+
+volumes:
+  pgdata:
