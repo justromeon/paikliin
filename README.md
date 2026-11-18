@@ -1,6 +1,7 @@
 # paikliin
 
 A URL shortener written in Haskell with Servant, hasql and Postgres.
+Live at https://paikliin.duckdns.org
 
 ## Prerequisites
 
@@ -63,7 +64,7 @@ The core is one pure module, `Domain`, with no IO, so it's tested without a data
 - **Unique index on `code`.** Every redirect looks a link up by its code. With 100,000 rows, the lookup took 0.05 ms with the index and 14.8 ms without it. Tradeoff: every insert also updates the index.
 - **Stored data is trusted.** Rows were validated before they were written, so they aren't validated again when read. Tradeoff: stricter validation rules don't apply to rows that already exist.
 
-### HTTP
+### HTTPS
 
 - **302, not 301.** Browsers cache a 301 permanently, which would break deleting and expiring links.
 - **410 for expired links.** It tells "this link existed" apart from "this link never existed" (404).
@@ -74,3 +75,12 @@ The core is one pure module, `Domain`, with no IO, so it's tested without a data
 - **Dependencies are built before the source is copied in.** Docker reuses that layer, so a code change rebuilds in seconds.
 - **Migrations run in a one-off container** that must finish before the server starts.
 - **Database files live in a named volume,** so data survives when containers are removed.
+
+### CI and deploys
+
+- **Every push** runs the tests against a throwaway Postgres and scans the git history for secrets with gitleaks.
+- **Pushes to `main` are deployed,** but only if both checks pass. CI builds the Docker image, pushes it to GitHub's container registry, and tells an AWS EC2 instance to pull it over SSH.
+- **Migrations run once per deploy,** before the new version starts. A failed migration stops the deploy and the old version keeps serving.
+- **No secrets in the repo.** The database password exists only on the server, and the deploy key lives in GitHub Actions secrets. The tests need none.
+- **The production database isn't reachable from outside.** Its port isn't published, so only the app's container can connect.
+- **HTTPS through Caddy.** Caddy sits in front of the app, gets and renews a Let's Encrypt certificate on its own, and redirects HTTP to HTTPS. Only Caddy's ports are open to the internet.
