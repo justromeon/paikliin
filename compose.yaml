@@ -7,7 +7,7 @@ services:
     ports: ["127.0.0.1:5432:5432"]   # for `cabal test`
     volumes: [pgdata:/var/lib/postgresql/data]
     healthcheck:
-      test: ["CMD", "pg_isready", "-U", "postgres"]
+      test: ["CMD", "pg_isready", "-h", "localhost", "-U", "postgres"]
       interval: 2s
       retries: 15
 
