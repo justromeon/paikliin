@@ -22,10 +22,21 @@ services:
   app:
     image: ghcr.io/justromeon/paikliin:latest
     environment: *appenv
-    ports: ["80:8080"]
     restart: unless-stopped
     depends_on:
       db: { condition: service_healthy }
 
+  caddy:
+    image: caddy:2
+    ports: ["80:80", "443:443"]
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data # certificates; keep them across restarts
+      - caddy_config:/config
+    restart: unless-stopped
+    depends_on: [app]
+
 volumes:
   pgdata:
+  caddy_data:
+  caddy_config:
