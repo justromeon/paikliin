@@ -11,13 +11,19 @@ services:
       interval: 2s
       retries: 15
 
+  redis:
+    image: redis:8
+    restart: unless-stopped
+
   migrate:
     image: ghcr.io/justromeon/paikliin:latest
     command: ["paikliin", "migrate"]
     environment: &appenv
       DATABASE_URL: postgres://postgres:${POSTGRES_PASSWORD}@db:5432/paikliin
+      REDIS_URL: redis://redis:6379
     depends_on:
       db: { condition: service_healthy }
+      redis: { condition: service_started }
 
   app:
     image: ghcr.io/justromeon/paikliin:latest

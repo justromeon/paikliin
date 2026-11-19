@@ -20,13 +20,19 @@ common shared
         OverloadedRecordDot
         DuplicateRecordFields
     ghc-options:        -Wall
-    build-depends:      base ^>=4.20, text, time, bytestring
+    build-depends:
+        base ^>=4.20,
+        text,
+        time,
+        bytestring,
+        hedis
 
 library
     import:           shared
     hs-source-dirs:   src
     exposed-modules:
         Api
+        Cache
         Db
         Domain
     build-depends:
@@ -53,12 +59,12 @@ test-suite spec
     main-is:          Spec.hs
     other-modules:
         ApiSpec
+        CacheSpec
         DomainSpec
     build-depends:
         paikliin,
         hspec,
         QuickCheck,
-        time,
         hspec-wai,
         wai-extra,
         http-types,
