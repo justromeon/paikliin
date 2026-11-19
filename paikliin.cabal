@@ -35,6 +35,7 @@ library
         Cache
         Db
         Domain
+        RateLimit
     build-depends:
         hasql >=1.10 && <1.11,
         hasql-th,
@@ -61,6 +62,7 @@ test-suite spec
         ApiSpec
         CacheSpec
         DomainSpec
+        RateLimitSpec
     build-depends:
         paikliin,
         hspec,
