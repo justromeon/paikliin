@@ -1,4 +1,5 @@
 module Cache (
+  connect,
   Entry,
   CacheTtl (..),
   cacheTtl,
@@ -19,6 +20,9 @@ import Data.Time (UTCTime, diffUTCTime)
 import Database.Redis qualified as Redis
 import Domain
 import GHC.Generics (Generic)
+
+connect :: String -> IO Redis.Connection
+connect url = either fail Redis.checkedConnect (Redis.parseConnectInfo url)
 
 data Entry = Entry
   { target :: Text

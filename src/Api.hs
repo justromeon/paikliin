@@ -1,9 +1,11 @@
 module Api (Env (..), app) where
 
+import Cache qualified
 import Control.Monad.IO.Class (MonadIO (liftIO))
 import Data.Aeson (FromJSON, ToJSON, encode, object, (.=))
 import Data.Text (Text)
 import Data.Time (UTCTime)
+import Database.Redis qualified as Redis
 import Db qualified
 import Domain
 import GHC.Generics (Generic)
@@ -12,6 +14,7 @@ import Servant
 
 data Env = Env
   { db :: Connection
+  , redis :: Redis.Connection
   , currentTime :: IO UTCTime
   -- ^ getCurrentTime in production; a moveable clock in tests
   }
@@ -70,12 +73,13 @@ server env = health :<|> create :<|> info :<|> remove :<|> redirect
   remove raw = do
     sc <- parseCode raw
     deleted <- liftIO (Db.deleteLink env.db sc)
+    liftIO (Cache.cacheDelete env.redis sc)
     if deleted then pure NoContent else throwError err404
 
   redirect raw = do
     sc <- parseCode raw
     now <- liftIO env.currentTime
-    found <- liftIO (Db.findLink env.db sc)
+    found <- liftIO (lookupLink env now sc)
     case resolve now found of
       NotFound -> throwError err404
       Expired -> throwError err410
@@ -90,6 +94,16 @@ badRequest e =
 
 parseCode :: Text -> Handler ShortCode
 parseCode = maybe (throwError err404) pure . parseShortCode
+
+lookupLink :: Env -> UTCTime -> ShortCode -> IO (Maybe Domain.Link)
+lookupLink env now sc = do
+  cacheRes <- Cache.cacheGet env.redis sc
+  case cacheRes of
+    Just link -> pure (Just link)
+    Nothing -> do
+      fromDb <- Db.findLink env.db sc
+      mapM_ (Cache.cachePut env.redis now) fromDb
+      pure fromDb
 
 app :: Env -> Application
 app env = serve (Proxy @API) (server env)
