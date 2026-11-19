@@ -64,6 +64,13 @@ The core is one pure module, `Domain`, with no IO, so it's tested without a data
 - **Unique index on `code`.** Every redirect looks a link up by its code. With 100,000 rows, the lookup took 0.05 ms with the index and 14.8 ms without it. Tradeoff: every insert also updates the index.
 - **Stored data is trusted.** Rows were validated before they were written, so they aren't validated again when read. Tradeoff: stricter validation rules don't apply to rows that already exist.
 
+### Caching
+
+- **Cache-aside with Redis.** A redirect looks in Redis first. On a miss it reads Postgres and stores the result.
+- **Entries live at most one hour,** and never longer than the link itself. Deleting a link removes its entry.
+- **Expiry is checked in code on every request,** so a cached link can't outlive its expiry time.
+- **A Redis failure counts as a miss.** The service gets slower, not unavailable.
+
 ### HTTPS
 
 - **302, not 301.** Browsers cache a 301 permanently, which would break deleting and expiring links.
@@ -84,3 +91,4 @@ The core is one pure module, `Domain`, with no IO, so it's tested without a data
 - **No secrets in the repo.** The database password exists only on the server, and the deploy key lives in GitHub Actions secrets. The tests need none.
 - **The production database isn't reachable from outside.** Its port isn't published, so only the app's container can connect.
 - **HTTPS through Caddy.** Caddy sits in front of the app, gets and renews a Let's Encrypt certificate on its own, and redirects HTTP to HTTPS. Only Caddy's ports are open to the internet.
+
