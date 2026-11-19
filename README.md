@@ -76,6 +76,13 @@ The core is one pure module, `Domain`, with no IO, so it's tested without a data
 - **302, not 301.** Browsers cache a 301 permanently, which would break deleting and expiring links.
 - **410 for expired links.** It tells "this link existed" apart from "this link never existed" (404).
 
+### Rate limiting
+
+- **Link creation is limited to 10 per minute per client IP.** Further requests get `429 Too Many Requests` with a `Retry-After` header. Redirects aren't limited.
+- **Fixed window, counted in Redis.** One counter per client per minute, shared by every replica. `INCR` makes counting atomic.
+- **The client's address comes from Caddy's `X-Forwarded-For` header.** It's trusted only because the app is reachable through Caddy alone, and Caddy overwrites the header clients send.
+- **If Redis is down, requests are allowed.** The limiter never makes the service unavailable; during an outage there's no limit.
+
 ### Containers
 
 - **Two-stage image.** One stage compiles the code. The final image holds only the binary, its system libraries and the SQL migrations.
@@ -91,4 +98,3 @@ The core is one pure module, `Domain`, with no IO, so it's tested without a data
 - **No secrets in the repo.** The database password exists only on the server, and the deploy key lives in GitHub Actions secrets. The tests need none.
 - **The production database isn't reachable from outside.** Its port isn't published, so only the app's container can connect.
 - **HTTPS through Caddy.** Caddy sits in front of the app, gets and renews a Let's Encrypt certificate on its own, and redirects HTTP to HTTPS. Only Caddy's ports are open to the internet.
-
