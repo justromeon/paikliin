@@ -3,6 +3,7 @@ module Api (Env (..), app) where
 import Cache qualified
 import Control.Monad.IO.Class (MonadIO (liftIO))
 import Data.Aeson (FromJSON, ToJSON, encode, object, (.=))
+import Data.ByteString.Char8 qualified as BS8
 import Data.Text (Text)
 import Data.Time (UTCTime)
 import Database.Redis qualified as Redis
@@ -10,6 +11,7 @@ import Db qualified
 import Domain
 import GHC.Generics (Generic)
 import Hasql.Connection (Connection)
+import RateLimit (Decision (Reject), clientIp, countRequest, decide, windowKey)
 import Servant
 
 data Env = Env
@@ -48,7 +50,7 @@ toInfo link =
 
 type API =
   "health" :> Get '[PlainText] Text
-    :<|> "links" :> ReqBody '[JSON] CreateReq :> PostCreated '[JSON] LinkInfo
+    :<|> "links" :> Header "X-Forwarded-For" Text :> ReqBody '[JSON] CreateReq :> PostCreated '[JSON] LinkInfo
     :<|> "links" :> Capture "code" Text :> Get '[JSON] LinkInfo
     :<|> "links" :> Capture "code" Text :> DeleteNoContent
     :<|> Capture "code" Text
@@ -59,8 +61,9 @@ server env = health :<|> create :<|> info :<|> remove :<|> redirect
  where
   health = pure "ok"
 
-  create req = do
+  create forwarded req = do
     now <- liftIO env.currentTime
+    checkRateLimit env now (clientIp forwarded)
     case validateCreate now req.url req.ttlSeconds of
       Left err -> throwError (badRequest err)
       Right new -> toInfo <$> liftIO (Db.insertLink env.db now new)
@@ -94,6 +97,23 @@ badRequest e =
 
 parseCode :: Text -> Handler ShortCode
 parseCode = maybe (throwError err404) pure . parseShortCode
+
+-- | Redis down means no count, and the request is allowed.
+checkRateLimit :: Env -> UTCTime -> Text -> Handler ()
+checkRateLimit env now client = do
+  count <- liftIO (RateLimit.countRequest env.redis (windowKey client now))
+  case decide now <$> count of
+    Just (Reject wait) -> throwError (tooManyRequests wait)
+    _ -> pure ()
+
+tooManyRequests :: Integer -> ServerError
+tooManyRequests wait =
+  ServerError
+    { errHTTPCode = 429
+    , errReasonPhrase = "Too Many Requests"
+    , errBody = encode (object ["error" .= ("too many links created, try again later" :: Text)])
+    , errHeaders = [("Content-Type", "application/json"), ("Retry-After", BS8.pack (show wait))]
+    }
 
 lookupLink :: Env -> UTCTime -> ShortCode -> IO (Maybe Domain.Link)
 lookupLink env now sc = do

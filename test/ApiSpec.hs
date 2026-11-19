@@ -68,6 +68,12 @@ spec = do
       advance 61
       get "/q0U" `shouldRespondWith` 410
 
+    it "limits link creation per minute" $ do
+      mapM_ (const (postLink "{\"url\":\"https://example.com\"}")) [1 .. 10 :: Int]
+      postLink "{\"url\":\"https://example.com\"}" `shouldRespondWith` 429
+      advance 60
+      postLink "{\"url\":\"https://example.com\"}" `shouldRespondWith` 201
+
 connectTest :: IO Connection
 connectTest = do
   conn <- Db.connect . T.pack =<< getEnv "TEST_DATABASE_URL"
